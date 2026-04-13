@@ -1,6 +1,11 @@
 import streamlit as st
+import sys
+import os
 from src.helper import extract_text_from_pdf, ask_openai
 from src.job_api import fetch_linkedin_jobs, fetch_naukri_jobs
+
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "src")))
 
 st.set_page_config(page_title="Job Recommender", layout="wide")
 
