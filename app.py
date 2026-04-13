@@ -1,27 +1,35 @@
 import streamlit as st
 import sys
 import os
-from src.helper import extract_text_from_pdf, ask_openai
-from src.job_api import fetch_linkedin_jobs, fetch_naukri_jobs
 
-
+# ✅ Fix for Streamlit Cloud (add src to path FIRST)
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "src")))
 
+# ✅ Import AFTER fixing path
+from helper import extract_text_from_pdf, ask_openai
+from job_api import fetch_linkedin_jobs, fetch_naukri_jobs
+
+
+# ------------------ UI CONFIG ------------------
 st.set_page_config(page_title="Job Recommender", layout="wide")
 
 st.title("📄 AI Job Recommender")
-st.markdown("Upload your resume and get job recommendations based on your skills and experience from LinkedIn and Naukri.")
+st.markdown(
+    "Upload your resume and get job recommendations based on your skills and experience from LinkedIn and Naukri."
+)
 
 uploaded_file = st.file_uploader("Upload your resume (PDF)", type=["pdf"])
 
+
+# ------------------ MAIN FLOW ------------------
 if uploaded_file:
 
-    # ------------------ Extract Resume ------------------
+    # Extract Resume
     with st.spinner("Extracting text from your resume..."):
         resume_text = extract_text_from_pdf(uploaded_file)
         resume_text = resume_text[:8000]  # prevent token overflow
 
-    # ------------------ Summary ------------------
+    # ------------------ SUMMARY ------------------
     try:
         with st.spinner("Summarizing your resume..."):
             summary = ask_openai(
@@ -32,7 +40,7 @@ if uploaded_file:
         st.error(f"Error generating summary: {e}")
         st.stop()
 
-    # ------------------ Skill Gaps ------------------
+    # ------------------ SKILL GAPS ------------------
     try:
         with st.spinner("Finding skill gaps..."):
             gaps = ask_openai(
@@ -43,7 +51,7 @@ if uploaded_file:
         st.error(f"Error analyzing gaps: {e}")
         st.stop()
 
-    # ------------------ Roadmap ------------------
+    # ------------------ ROADMAP ------------------
     try:
         with st.spinner("Creating future roadmap..."):
             roadmap = ask_openai(
@@ -54,7 +62,7 @@ if uploaded_file:
         st.error(f"Error generating roadmap: {e}")
         st.stop()
 
-    # ------------------ Display Results ------------------
+    # ------------------ DISPLAY ------------------
     st.markdown("---")
     st.header("📑 Resume Summary")
     st.info(summary)
@@ -69,7 +77,7 @@ if uploaded_file:
 
     st.success("✅ Analysis Completed Successfully!")
 
-    # ------------------ Job Recommendations ------------------
+    # ------------------ JOB SEARCH ------------------
     if st.button("🔎 Get Job Recommendations"):
 
         try:
@@ -80,7 +88,9 @@ if uploaded_file:
                 )
 
                 search_keywords_clean = keywords.replace("\n", "").strip()
-                search_keywords_clean = ", ".join([k.strip() for k in search_keywords_clean.split(",")])
+                search_keywords_clean = ", ".join(
+                    [k.strip() for k in search_keywords_clean.split(",")]
+                )
 
         except Exception as e:
             st.error(f"Error extracting keywords: {e}")
@@ -88,8 +98,8 @@ if uploaded_file:
 
         st.success(f"Extracted Job Keywords: {search_keywords_clean}")
 
-        # ------------------ Fetch Jobs ------------------
-        with st.spinner("Fetching jobs from LinkedIn and Naukri (this may take a few seconds)..."):
+        # ------------------ FETCH JOBS ------------------
+        with st.spinner("Fetching jobs (this may take a few seconds)..."):
             try:
                 linkedin_jobs = fetch_linkedin_jobs(search_keywords_clean, rows=60)
                 naukri_jobs = fetch_naukri_jobs(search_keywords_clean, rows=60)
@@ -97,26 +107,30 @@ if uploaded_file:
                 st.error(f"Error fetching jobs: {e}")
                 st.stop()
 
-        # ------------------ LinkedIn Jobs ------------------
+        # ------------------ LINKEDIN ------------------
         st.markdown("---")
         st.header("💼 Top LinkedIn Jobs")
 
         if linkedin_jobs:
             for job in linkedin_jobs:
-                st.markdown(f"**{job.get('title', 'N/A')}** at *{job.get('companyName', 'N/A')}*")
+                st.markdown(
+                    f"**{job.get('title', 'N/A')}** at *{job.get('companyName', 'N/A')}*"
+                )
                 st.markdown(f"- 📍 {job.get('location', 'N/A')}")
                 st.markdown(f"- 🔗 [View Job]({job.get('link', '#')})")
                 st.markdown("---")
         else:
             st.warning("No LinkedIn jobs found.")
 
-        # ------------------ Naukri Jobs ------------------
+        # ------------------ NAUKRI ------------------
         st.markdown("---")
         st.header("💼 Top Naukri Jobs (India)")
 
         if naukri_jobs:
             for job in naukri_jobs:
-                st.markdown(f"**{job.get('title', 'N/A')}** at *{job.get('companyName', 'N/A')}*")
+                st.markdown(
+                    f"**{job.get('title', 'N/A')}** at *{job.get('companyName', 'N/A')}*"
+                )
                 st.markdown(f"- 📍 {job.get('location', 'N/A')}")
                 st.markdown(f"- 🔗 [View Job]({job.get('url', '#')})")
                 st.markdown("---")
